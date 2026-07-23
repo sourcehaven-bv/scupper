@@ -47,3 +47,16 @@ jobs:
           # yet exercised by tests). It is a floor, not a target — raise it as
           # tests are added; never lower it without reason.
           /tmp/scupper -i cover.out --require-reason -threshold 55
+
+  vulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...

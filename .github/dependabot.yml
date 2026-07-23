@@ -1,0 +1,37 @@
+version: 2
+
+# Cooldown waits N days after a version is published before opening a PR — the
+# supply-chain soak: malicious versions are typically caught (advisories,
+# retractions, account lock) within days of publication. Mirrors rela's policy.
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+    groups:
+      golang-org:
+        patterns:
+          - "golang.org/x/*"
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Third-party Actions still soak; trusted-org Actions (actions/*, etc.)
+    # are low-risk and skip the wait.
+    cooldown:
+      default-days: 7
+      exclude:
+        - "actions/*"
+        - "dependabot/*"
+        - "github/*"
+    commit-message:
+      prefix: "ci"
