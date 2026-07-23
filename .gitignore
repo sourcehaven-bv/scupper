@@ -1,0 +1,17 @@
+# Build output
+/scupper
+/bin/
+
+# Coverage
+*.out
+*.cov
+coverage*.txt
+covdir/
+
+# Go workspace
+go.work
+go.work.sum
+
+# Editor / OS
+.DS_Store
+*.swp
