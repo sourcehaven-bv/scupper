@@ -46,6 +46,7 @@ of its comment — prose that merely mentions the keyword is not a directive.
 | Directive | Effect |
 |---|---|
 | `//scupper:ignore` | ignore the line the comment sits on |
+| `//scupper:ignore-func` | ignore the whole function declared just below (uses the Go AST to find its span) |
 | `//scupper:ignore-start` … `//scupper:ignore-end` | ignore every line in the block |
 | `//scupper:ignore-file` | ignore the whole file |
 

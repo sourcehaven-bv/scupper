@@ -214,12 +214,14 @@ flags:
 
 directives (placed in source comments; <base> defaults to "scupper:ignore"):
   //<base>         ignore the line the comment is on
+  //<base>-func    ignore the whole function declared just below the comment
   //<base>-start   begin an ignored block   (comment may sit anywhere in the block)
   //<base>-end     end an ignored block
   //<base>-file    ignore the whole file
 
 with -d coverage-ignore and --require-reason, this reads rela-style comments:
   // coverage-ignore: <reason>            single line
+  // coverage-ignore-func: <reason>       whole function below
   // coverage-ignore-start: <reason>      ... // coverage-ignore-end
   // coverage-ignore-file: <reason>       whole file
 `)
