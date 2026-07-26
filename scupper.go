@@ -33,6 +33,7 @@ type Directives struct {
 	Start string // e.g. "scupper:ignore-start"
 	End   string // e.g. "scupper:ignore-end"
 	File  string // e.g. "scupper:ignore-file"
+	Func  string // e.g. "scupper:ignore-func"
 
 	// RequireReason makes a directive without a trailing explanation a hard
 	// error. This enforces the "every dismissal is explicit and reviewable"
@@ -54,6 +55,7 @@ func DefaultDirectives(base string) Directives {
 		Start: base + "-start",
 		End:   base + "-end",
 		File:  base + "-file",
+		Func:  base + "-func",
 	}
 }
 
@@ -131,6 +133,8 @@ func directiveKind(commentBody string, d Directives) (kind, reason string) {
 	switch tok {
 	case d.File:
 		return "file", reason
+	case d.Func:
+		return "func", reason
 	case d.Start:
 		return "start", reason
 	case d.End:
@@ -147,6 +151,8 @@ func keywordFor(kind string, d Directives) string {
 	switch kind {
 	case "file":
 		return d.File
+	case "func":
+		return d.Func
 	case "start":
 		return d.Start
 	case "end":
@@ -179,6 +185,7 @@ func ScanFile(path string, d Directives) (FileIgnore, error) {
 		inBlock    bool
 		blockStart int
 		lineNo     int
+		funcLines  []int // lines carrying an ignore-func directive
 	)
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
@@ -199,6 +206,8 @@ func ScanFile(path string, d Directives) (FileIgnore, error) {
 		switch kind {
 		case "file":
 			fi.WholeFile = true
+		case "func":
+			funcLines = append(funcLines, lineNo)
 		case "start":
 			if inBlock {
 				return fi, fmt.Errorf("%s:%d: %q with a block already open at line %d (blocks do not nest; close it with %q first)",
@@ -222,6 +231,18 @@ func ScanFile(path string, d Directives) (FileIgnore, error) {
 	}
 	if inBlock {
 		return fi, fmt.Errorf("%s:%d: unterminated %q (missing %q)", path, blockStart, d.Start, d.End)
+	}
+	// Resolve ignore-func directives to whole-function line spans. This needs
+	// the Go AST (a line comment can't know where the function body ends), so it
+	// runs once after the line scan. A directive that isn't immediately followed
+	// by a function declaration is a hard error — the same "no silent swallow"
+	// rule as the block directives.
+	if len(funcLines) > 0 {
+		ranges, err := resolveFuncDirectives(path, funcLines, d)
+		if err != nil {
+			return fi, err
+		}
+		fi.Ranges = append(fi.Ranges, ranges...)
 	}
 	return fi, nil
 }

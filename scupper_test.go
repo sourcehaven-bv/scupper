@@ -239,6 +239,96 @@ func f() {
 	}
 }
 
+func TestScanFile_IgnoreFunc(t *testing.T) {
+	// A directive on the line above a func dismisses the WHOLE function span
+	// (the go-test-coverage "whole function" convention, made explicit).
+	p := writeTemp(t, `package x
+
+// coverage-ignore-func: startup wiring
+func Untested(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func Tested() int { return 1 }
+`)
+	fi, err := ScanFile(p, DefaultDirectives("coverage-ignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Untested spans lines 4-9; every line of it must be ignored.
+	for _, n := range []int{4, 5, 6, 7, 8, 9} {
+		if !fi.Covers(n) {
+			t.Errorf("line %d (inside Untested) should be ignored", n)
+		}
+	}
+	// Tested (line 12) must NOT be ignored.
+	if fi.Covers(12) {
+		t.Error("Tested must not be ignored")
+	}
+}
+
+func TestScanFile_IgnoreFunc_Method(t *testing.T) {
+	// Works for methods (FuncDecl with a receiver) too.
+	p := writeTemp(t, `package x
+
+type T struct{}
+
+// coverage-ignore-func: unreachable
+func (T) M(x int) int {
+	if x > 0 {
+		return x
+	}
+	return 0
+}
+`)
+	fi, err := ScanFile(p, DefaultDirectives("coverage-ignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range []int{6, 7, 8, 9, 10, 11} {
+		if !fi.Covers(n) {
+			t.Errorf("line %d (inside method M) should be ignored", n)
+		}
+	}
+}
+
+func TestScanFile_IgnoreFunc_NoFuncBelowErrors(t *testing.T) {
+	// A func directive with no function under it is a hard error, not a silent
+	// swallow.
+	p := writeTemp(t, `package x
+
+func Above() int { return 1 }
+
+// coverage-ignore-func: dangling
+var x = 1
+`)
+	_, err := ScanFile(p, DefaultDirectives("coverage-ignore"))
+	if err == nil || !strings.Contains(err.Error(), "no function declaration below") {
+		t.Errorf("dangling ignore-func should error, got %v", err)
+	}
+}
+
+func TestScanFile_IgnoreFunc_ScupperDefaultBase(t *testing.T) {
+	// The default base yields //scupper:ignore-func.
+	p := writeTemp(t, `package x
+
+//scupper:ignore-func impossible
+func F() int {
+	return 1
+}
+`)
+	fi, err := ScanFile(p, DefaultDirectives(""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fi.Covers(4) || !fi.Covers(5) {
+		t.Errorf("scupper:ignore-func should ignore the function body, ranges=%+v", fi.Ranges)
+	}
+}
+
 func TestScanFile_RequireReason(t *testing.T) {
 	d := DefaultDirectives("coverage-ignore")
 	d.RequireReason = true
