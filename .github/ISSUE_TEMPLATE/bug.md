@@ -3,7 +3,11 @@ name: Bug report
 about: Report something that does not work as expected.
 ---
 <!-- managed by sourcehaven/repo-templates -->
-<!-- Do not report security vulnerabilities in a public issue. Contact the maintainers privately. -->
+<!-- markdownlint-disable-file MD041 -->
+<!--
+Do not report security vulnerabilities in a public issue. Contact the
+maintainers privately.
+-->
 
 ## What happened
 
@@ -19,4 +23,7 @@ about: Report something that does not work as expected.
 
 ## Security or privacy impact
 
-<!-- Can this expose data, bypass access control or affect availability? Answer "none" if not. -->
+<!--
+Can this expose data, bypass access control or affect availability? Answer
+"none" if not.
+-->
